@@ -27,7 +27,8 @@
 enum DeviceMode { 
   MODE_FLIGHT,  // Visualizzazione dati di volo
   MODE_MENU,    // Navigazione lista impostazioni
-  MODE_EDIT     // Modifica di un valore specifico
+  MODE_EDIT,     // Modifica di un valore specifico
+  MODE_HISTORY 
 };
 
 // --- Tipi di Filtro ---
@@ -52,5 +53,16 @@ struct DeviceConfig {
 
 // Rendiamo la configurazione accessibile a tutti i file .cpp
 extern DeviceConfig config;
+
+// --- Struttura per il singolo Record di Volo ---
+struct FlightRecord {
+  float max_alt = 0;
+  float min_alt = 0;
+  float max_climb = 0;
+  float max_sink = 0;
+  FilterType used_filter = KALMAN; // <-- Algoritmo memorizzato
+  bool valid = false;              // Indica se il record contiene un volo reale
+};
+
 
 #endif
