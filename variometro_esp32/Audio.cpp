@@ -2,6 +2,10 @@
 #include "config.h"
 #include <Arduino.h>
 
+// Configurazioni per il PWM dell'ESP32 C3
+const int LEDC_CHANNEL = 0;
+const int LEDC_RESOLUTION = 8; // Risoluzione 8 bit (0-255)
+
 const int LIFT_CONFIRMATION_COUNT = 5; 
 const int SINK_CONFIRMATION_COUNT = 8; 
 
@@ -11,20 +15,42 @@ static unsigned long last_event_time = 0;
 static bool is_beeping = false;           
 
 void audio_init() {
-  pinMode(BUZZER_PIN, OUTPUT);
+  // Inizializza il PWM sul pin del buzzer
+  ledcAttach(BUZZER_PIN, 4000, LEDC_RESOLUTION);
+}
+
+void audio_play(int frequency) {
+  if (frequency <= 0) {
+    ledcWrite(BUZZER_PIN, 0);
+    return;
+  }
+  
+  // Imposta la frequenza desiderata
+  ledcWriteTone(BUZZER_PIN, frequency);
+  
+  // Calcola il duty cycle basato sul volume (0-100%).
+  // Il volume massimo percepito in un piezo con onda quadra è al 50% di duty cycle.
+  // Mappiamo il volume 0-100 dell'utente in un duty cycle 0-127 (50% di 255).
+  int duty = map(config.volume, 0, 100, 0, 127);
+  ledcWrite(BUZZER_PIN, duty);
+}
+
+void audio_stop() {
+  ledcWrite(BUZZER_PIN, 0);
 }
 
 void audio_update(float vario_mps) {
   unsigned long current_time = millis();
 
   // --- LOGICA THERMAL SNIFFER ---
-  // Se attivo, suona tra -0.1 e la soglia di salita impostata
   if (config.thermal_sniffer && vario_mps > -0.1 && vario_mps <= config.lift_threshold) {
     if (!is_beeping && (current_time - last_event_time > 800)) {
-      tone(BUZZER_PIN, 400, 40); // Bip corto e basso (400Hz)
+      audio_play(400); // Suono basso per sniffer
+      delay(40);       // Bip molto corto
+      audio_stop();
       last_event_time = current_time;
     }
-    return; // Esci per non sovrapporsi al vario normale
+    return;
   }
 
   // --- LOGICA VARIO CLASSICA ---
@@ -45,24 +71,24 @@ void audio_update(float vario_mps) {
     int frequency = map(vario_mps * 100, config.lift_threshold * 100, 500, 800, 1600);
     
     if (!is_beeping && (current_time - last_event_time > beep_interval)) {
-      tone(BUZZER_PIN, frequency);
+      audio_play(frequency);
       is_beeping = true;
       last_event_time = current_time;
     } else if (is_beeping && (current_time - last_event_time > 100)) {
-      noTone(BUZZER_PIN);
+      audio_stop();
       is_beeping = false;
       last_event_time = current_time;
     }
   }
   else if (sink_counter >= SINK_CONFIRMATION_COUNT) {
     if (!is_beeping) {
-        tone(BUZZER_PIN, 250); 
+        audio_play(250); 
         is_beeping = true;
     }
   }
   else {
     if (is_beeping) { 
-        noTone(BUZZER_PIN);
+        audio_stop();
         is_beeping = false;
     }
   }

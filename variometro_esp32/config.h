@@ -47,6 +47,7 @@ struct DeviceConfig {
   float altitude_offset = 0.0;
   bool show_voltage = false; // true = Volt, false = %
   bool thermal_sniffer = false;
+  int volume = 30;
 };
 
 // Rendiamo la configurazione accessibile a tutti i file .cpp

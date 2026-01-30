@@ -72,10 +72,10 @@ void handleInputs() {
       if (selectedMenuItem == 0) currentMode = MODE_FLIGHT;
       else { currentMode = MODE_EDIT; editSubIndex = 0; }
     } else if (currentMode == MODE_EDIT) {
-      if (selectedMenuItem == 1) { // Ciclo cifre altitudine
+      if (selectedMenuItem == 1) { 
         editSubIndex++;
         if (editSubIndex > 3) { calibrate_altitude(); currentMode = MODE_MENU; }
-      } else if (selectedMenuItem == 4) { // Ciclo opzioni batteria
+      } else if (selectedMenuItem == 4) { 
         editSubIndex++;
         if (editSubIndex > 1) currentMode = MODE_MENU;
       } else { currentMode = MODE_MENU; }
@@ -84,14 +84,32 @@ void handleInputs() {
 
   // UP (Al rilascio)
   if (lastUpState == LOW && currUp == HIGH) {
-    if (currentMode == MODE_MENU) selectedMenuItem = (selectedMenuItem - 1 + TOTAL_MENU_ITEMS) % TOTAL_MENU_ITEMS;
-    else if (currentMode == MODE_EDIT) updateParameter(true);
+    if (currentMode == MODE_FLIGHT) {
+      // REGOLA VOLUME SU NELLA SCHERMATA PRINCIPALE
+      config.volume = constrain(config.volume + 10, 0, 100);
+      Serial.print("Volume: "); Serial.println(config.volume);
+    } 
+    else if (currentMode == MODE_MENU) {
+      selectedMenuItem = (selectedMenuItem - 1 + TOTAL_MENU_ITEMS) % TOTAL_MENU_ITEMS;
+    } 
+    else if (currentMode == MODE_EDIT) {
+      updateParameter(true);
+    }
   }
 
   // DOWN (Al rilascio)
   if (lastDownState == LOW && currDown == HIGH) {
-    if (currentMode == MODE_MENU) selectedMenuItem = (selectedMenuItem + 1) % TOTAL_MENU_ITEMS;
-    else if (currentMode == MODE_EDIT) updateParameter(false);
+    if (currentMode == MODE_FLIGHT) {
+      // REGOLA VOLUME GIÙ NELLA SCHERMATA PRINCIPALE
+      config.volume = constrain(config.volume - 10, 0, 100);
+      Serial.print("Volume: "); Serial.println(config.volume);
+    } 
+    else if (currentMode == MODE_MENU) {
+      selectedMenuItem = (selectedMenuItem + 1) % TOTAL_MENU_ITEMS;
+    } 
+    else if (currentMode == MODE_EDIT) {
+      updateParameter(false);
+    }
   }
 
   lastUpState = currUp;
