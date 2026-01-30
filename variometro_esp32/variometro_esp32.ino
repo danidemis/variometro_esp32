@@ -29,6 +29,9 @@ static float pressure_accumulator = 0;
 static int reading_count = 0;
 SensorData current_data;
 
+int historyPage = 0;               // Pagina corrente dello storico (0, 1 o 2)
+unsigned long lastPageSwitch = 0;  // Timer per lo scorrimento automatico
+
 bool lastUpState = HIGH, lastDownState = HIGH, lastSelectState = HIGH;
 
 // --- FUNZIONI DI SUPPORTO ---
@@ -117,7 +120,7 @@ void handleInputs() {
     if (currentMode == MODE_FLIGHT) { if (config.volume < 8) { config.volume++; audio_beep_feedback(); display_show_volume(); } }
     else if (currentMode == MODE_MENU) selectedMenuItem = (selectedMenuItem - 1 + TOTAL_MENU_ITEMS) % TOTAL_MENU_ITEMS;
     else if (currentMode == MODE_EDIT) updateParameter(true);
-    else if (currentMode == MODE_HISTORY) { historyIndex = (historyIndex - 1 + 10) % 10; updateHistoryView(); }
+    else if (currentMode == MODE_HISTORY) { historyIndex = (historyIndex - 1 + 10) % 10; updateHistoryView(); historyPage = 0; lastPageSwitch = millis(); }
     else if (currentMode == MODE_CONFIRM_START) currentMode = MODE_MENU;
   }
 
@@ -125,7 +128,7 @@ void handleInputs() {
     if (currentMode == MODE_FLIGHT) { if (config.volume > 1) { config.volume--; audio_beep_feedback(); display_show_volume(); } }
     else if (currentMode == MODE_MENU) selectedMenuItem = (selectedMenuItem + 1) % TOTAL_MENU_ITEMS;
     else if (currentMode == MODE_EDIT) updateParameter(false);
-    else if (currentMode == MODE_HISTORY) { historyIndex = (historyIndex + 1) % 10; updateHistoryView(); }
+    else if (currentMode == MODE_HISTORY) { historyIndex = (historyIndex + 1) % 10; updateHistoryView(); historyPage = 0; lastPageSwitch = millis(); }
     else if (currentMode == MODE_CONFIRM_START) currentMode = MODE_MENU;
   }
 
@@ -196,7 +199,14 @@ void loop() {
         case MODE_MENU: display_menu(selectedMenuItem); break;
         case MODE_EDIT: display_edit(selectedMenuItem, editSubIndex); break;
         case MODE_CONFIRM_START: display_confirm_start(); break;
-        case MODE_HISTORY: display_history(historyIndex, currentHistoryView); break;
+        case MODE_HISTORY: 
+          if (millis() - lastPageSwitch > 3000) {
+              historyPage = (historyPage + 1) % 3; // Cicla tra le pagine 0, 1, 2
+              lastPageSwitch = millis();
+          }
+
+          display_history(historyIndex, currentHistoryView, historyPage);
+        
       }
       // NOTA: display.display() è chiamato dentro le singole funzioni (es. display_menu), 
       // quindi qui non serve chiamarlo di nuovo. Questo va bene.

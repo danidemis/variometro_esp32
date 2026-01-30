@@ -13,6 +13,7 @@ void display_menu(int selectedIndex);
 void display_edit(int selectedIndex, int subIndex); // Prototipo per Step 4
 void display_show_volume(); // <-- AGGIUNTO: Risolve l'errore di compilazione
 void display_confirm_start();
-void display_history(int flightIndex, const FlightRecord &record); // <-- Per lo Step 5
+void display_history(int flightIndex, const FlightRecord &record, int page);
+
 
 #endif

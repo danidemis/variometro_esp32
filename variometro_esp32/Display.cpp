@@ -264,65 +264,90 @@ void display_edit(int selectedIndex, int subIndex) {
   display.display();
 }
 
-void display_history(int flightIndex, const FlightRecord &record) {
+void display_history(int flightIndex, const FlightRecord &record, int page) {
   display.clearDisplay();
-  display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
-
+  
+  // TESTATA FISSA: Numero del volo
+  display.setTextSize(1);
   display.setCursor(0, 0);
-  display.print("VOLO #");
-  display.print(flightIndex + 1);
+  display.print("VOLO #"); display.print(flightIndex + 1);
+  display.drawFastHLine(0, 11, 64, SSD1306_WHITE);
 
   if (!record.valid) {
-    display.setCursor(5, 50);
     display.setTextSize(2);
+    display.setCursor(5, 50);
     display.println("VUOTO");
   } else {
-    display.drawFastHLine(0, 12, 64, SSD1306_WHITE);
+    // LOGICA PAGINE CICLICHE (Ogni 3 secondi)
+    switch(page) {
+      case 0: // PAGINA 1: ALTITUDINI
+        // Intestazione MAX
+        display.setTextSize(1);
+        display.setCursor(0, 20);
+        display.println("-- MAX --");
+        display.setTextSize(2);
+        display.setCursor(5, 32);
+        display.print((int)record.max_alt); display.print("m");
 
-    // Altitudini
-    display.setCursor(0, 18);
-    display.print("MAX: ");
-    display.print(record.max_alt, 0);
-    display.println("m");
-    display.print("MIN: ");
-    display.print(record.min_alt, 0);
-    display.println("m");
+        // Intestazione MIN
+        display.setTextSize(1);
+        display.setCursor(0, 65);
+        display.println("-- MIN --");
+        display.setTextSize(2);
+        display.setCursor(5, 77);
+        display.print((int)record.min_alt); display.print("m");
+        break;
 
-    // Vario
-    display.setCursor(0, 40);
-    display.print("V+: ");
-    display.print(record.max_climb, 1);
-    display.println("m/s");
-    display.print("V-: ");
-    display.print(record.max_sink, 1);
-    display.println("m/s");
+      case 1: // PAGINA 2: VARIOMETRO
+        // Intestazione SALITA
+        display.setTextSize(1);
+        display.setCursor(0, 20);
+        display.println("-- VAR+ --");
+        //display.setTextSize(2);
+        display.setCursor(5, 32);
+        display.print(record.max_climb, 1); display.print("m/s");
 
-    // DURATA (Formattata)
-    display.setCursor(0, 65);
-    display.print("TEMPO: ");
-    int h = record.duration_secs / 3600;
-    int m = (record.duration_secs % 3600) / 60;
-    int s = record.duration_secs % 60;
-    if (h > 0) {
-      display.print(h);
-      display.print("h ");
+        // Intestazione DISCESA
+        display.setTextSize(1);
+        display.setCursor(0, 65);
+        display.println("-- VAR- --");
+        //display.setTextSize(2);
+        display.setCursor(5, 77);
+        display.print(record.max_sink, 1); display.print("m/s");
+        break;
+
+      case 2: // PAGINA 3: DURATA E ALGORITMO
+        // Intestazione DURATA
+        display.setTextSize(1);
+        display.setCursor(0, 20);
+        display.println("-- TIME --");
+        //display.setTextSize(2);
+        display.setCursor(5, 32);
+        int h = record.duration_secs / 3600;
+        int m = (record.duration_secs % 3600) / 60;
+        int s = record.duration_secs % 60;
+        if (h > 0) { display.print(h); display.print("h"); }
+        display.print(m); display.print("m");
+        display.print(s); display.print("s");
+
+        // Intestazione ALGORITMO
+        display.setTextSize(1);
+        display.setCursor(0, 65);
+        display.println("- FILTER -");
+        display.setCursor(5, 77);
+        if(record.used_filter == KALMAN) display.print("KALMAN");
+        else if(record.used_filter == EMA) display.print("EMA");
+        else display.print("MEDIA MOB");
+        break;
     }
-    display.print(m);
-    display.print("m ");
-    display.print(s);
-    display.println("s");
-
-    // Filtro
-    display.setCursor(0, 85);
-    display.print("FILTRO:");
-    display.setCursor(0, 95);
-    if (record.used_filter == KALMAN) display.print("KALMAN");
-    else if (record.used_filter == EMA) display.print("EMA");
-    else display.print("MEDIA MOB.");
   }
 
-  display.setCursor(0, 115);
-  display.print("< ESCI      UP/DN >");
+  // NAVIGAZIONE (Sempre visibile in fondo)
+  display.setTextSize(1);
+  display.drawFastHLine(0, 110, 64, SSD1306_WHITE);
+  display.setCursor(1, 119);
+  display.print("<-SCROLL->");
+  
   display.display();
 }
