@@ -104,3 +104,31 @@ void sensor_process_data(SensorData &data, float avg_pressure_hpa) {
   last_filtered_altitude = data.filtered_altitude;
   last_measurement_time = current_time;
 }
+
+void sensor_reset_filter(float new_altitude) {
+    // 1. Reset MEDIA MOBILE
+    // Riempiamo tutto il buffer con la nuova quota per azzerare la media
+    for (int i = 0; i < FILTER_SIZE; i++) {
+        altitude_buffer[i] = new_altitude;
+    }
+    // Ricalcoliamo la somma totale del buffer
+    altitude_sum = new_altitude * FILTER_SIZE;
+    buffer_index = 0;
+
+    // 2. Reset EMA
+    ema_altitude = new_altitude;
+
+    // 3. Reset KALMAN
+    kalman_altitude = new_altitude;
+    kalman_p = 1.0; // Resettiamo l'incertezza per far sì che il filtro si riagganci subito
+
+    // 4. FONDAMENTALE: Reset riferimenti velocità
+    // Dobbiamo aggiornare last_filtered_altitude, altrimenti al prossimo ciclo
+    // il calcolo del vario (data.filtered_altitude - last_filtered_altitude)
+    // vedrebbe comunque il "salto" rispetto alla lettura precedente.
+    last_filtered_altitude = new_altitude;
+
+    Serial.print("Filtri resettati e sincronizzati a: "); 
+    Serial.print(new_altitude); 
+    Serial.println(" m");
+}

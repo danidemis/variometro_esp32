@@ -23,5 +23,6 @@ struct SensorData {
 bool sensor_init();
 //void sensor_read_data(SensorData &data);
 void sensor_process_data(SensorData &data, float avg_pressure_hpa);
+void sensor_reset_filter(float new_altitude);
 
 #endif

@@ -38,6 +38,11 @@ void updateHistoryView() {
 
 void startNewSession() {
     if (isnan(current_data.filtered_altitude)) return;
+
+    // Impostiamo la quota di partenza del VOLO pari alla quota attuale filtrata.
+    // Questo azzera immediatamente il guadagno relativo (torna a +0m).
+    config.starting_altitude = current_data.filtered_altitude;
+
     currentSession.max_alt = current_data.filtered_altitude;
     currentSession.min_alt = current_data.filtered_altitude;
     currentSession.max_climb = 0;
@@ -63,6 +68,9 @@ void calibrate_altitude() {
     if (isnan(current_data.altitude)) return;
     float raw_sensor_altitude = current_data.altitude - config.altitude_offset;
     config.altitude_offset = config.starting_altitude - raw_sensor_altitude;
+
+    // Resettiamo il filtro sensore per evitare il picco di velocità verticale
+    sensor_reset_filter(config.starting_altitude);
 }
 
 void updateParameter(bool increment) {
@@ -151,12 +159,22 @@ void loop() {
       current_gain = current_data.filtered_altitude - config.starting_altitude;
 
       if (isSessionActive) {
+          // 1. Aggiornamento Altitudini (Sempre attive)
           if (current_data.filtered_altitude > currentSession.max_alt) currentSession.max_alt = current_data.filtered_altitude;
           if (current_data.filtered_altitude < currentSession.min_alt) currentSession.min_alt = current_data.filtered_altitude;
-          if (current_data.vario_mps > currentSession.max_climb) currentSession.max_climb = current_data.vario_mps;
-          if (current_data.vario_mps < currentSession.max_sink) currentSession.max_sink = current_data.vario_mps;
+          
+          // 2. LOGICA ANTI-SPIKE PER IL VARIO
+          // Aspettiamo 1.5 secondi dall'avvio (sessionStartTime) prima di registrare i record di vario.
+          // Questo tempo permette ai filtri (Kalman/EMA) di stabilizzarsi dopo la calibrazione.
+          if (millis() - sessionStartTime > 1500) {
+              if (current_data.vario_mps > currentSession.max_climb) currentSession.max_climb = current_data.vario_mps;
+              if (current_data.vario_mps < currentSession.max_sink) currentSession.max_sink = current_data.vario_mps;
+          } else {
+              // Durante la stabilizzazione, forziamo i record a zero per cancellare il "salto"
+              currentSession.max_climb = 0;
+              currentSession.max_sink = 0;
+          }
       }
-
       audio_update(current_data.vario_mps);
       nmea_send(current_data);
 
