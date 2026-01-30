@@ -15,7 +15,7 @@ void display_init() {
   display.ssd1306_command(SSD1306_SETCONTRAST);
   display.ssd1306_command(0xFF); 
 
-  display.setRotation(3); // Rotazione per uso verticale (64x128)
+  display.setRotation(3); // Orientamento verticale per il cockpit
 
   display.clearDisplay();
   display.setTextSize(2);
@@ -26,11 +26,11 @@ void display_init() {
   delay(1500);
 }
 
-// Visualizzazione Modalità Volo
+// Visualizzazione principale Modalità Volo
 void display_update(const SensorData &data, float start_altitude, float relative_gain) {
   display.clearDisplay();
 
-  // --- INFO BATTERIA (Se abilitata nel menu) ---
+  // --- INFO BATTERIA ---
   if (config.show_battery_info) {
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
@@ -44,7 +44,7 @@ void display_update(const SensorData &data, float start_altitude, float relative
     }
   }
 
-  // --- GUADAGNO RELATIVO ---
+  // --- SEZIONE ALTA: GUADAGNO RELATIVO (Rispetto allo start) ---
   display.setTextSize(2);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(2, 5);
@@ -52,15 +52,16 @@ void display_update(const SensorData &data, float start_altitude, float relative
   display.print(String(relative_gain, 0));
   display.print("m");
 
-  // --- QUOTA DI PARTENZA ---
+  // --- SEZIONE BASSA: ALTIMETRIA REALE (AMS) ---
+  // CORRETTO: Ora mostra data.filtered_altitude invece di start_altitude
   display.setTextSize(2);
   display.setCursor(2, 110);
-  display.print(String(start_altitude, 0));
+  display.print(String(data.filtered_altitude, 0));
   display.print("m");
 
   display.drawFastHLine(0, 100, 64, SSD1306_WHITE); 
 
-  // --- VARIOMETRO VISIVO ---
+  // --- SEZIONE CENTRALE: VARIOMETRO GRAFICO ---
   int center_y = 62; 
   display.drawFastHLine(14, center_y, 64, SSD1306_WHITE);
   display.setTextSize(2);
@@ -85,7 +86,7 @@ void display_update(const SensorData &data, float start_altitude, float relative
   display.display();
 }
 
-// NUOVA FUNZIONE: Rendering del MENU
+// Rendering del MENU
 void display_menu(int selectedIndex) {
   display.clearDisplay();
   display.setTextSize(2);
@@ -94,34 +95,24 @@ void display_menu(int selectedIndex) {
   display.println("MENU");
   display.drawFastHLine(0, 22, 64, SSD1306_WHITE);
 
-  // Voci del menu (brevi per stare nei 64px)
-  const char* menuItems[] = {
-    " ESCI",
-    " QUOTA",
-    " SENSIB.",
-    " FILTRO",
-    " BATT.",
-    " TH. SNIF"
-  };
+  const char* menuItems[] = {" ESCI", " QUOTA", " SENSIB.", " FILTRO", " BATT.", " SNIFFER"};
 
   display.setTextSize(1);
   for (int i = 0; i < 6; i++) {
     int y = 30 + (i * 15);
     display.setCursor(5, y);
-    
     if (i == selectedIndex) {
-      // Evidenzia la voce selezionata invertendo i colori
       display.fillRect(0, y - 2, 64, 11, SSD1306_WHITE);
       display.setTextColor(SSD1306_BLACK);
     } else {
       display.setTextColor(SSD1306_WHITE);
     }
-    
     display.print(menuItems[i]);
   }
   display.display();
 }
 
+// Rendering della MODIFICA PARAMETRI
 void display_edit(int selectedIndex, int subIndex) {
   display.clearDisplay();
   display.setTextSize(1);
@@ -131,8 +122,6 @@ void display_edit(int selectedIndex, int subIndex) {
   display.drawFastHLine(0, 15, 64, SSD1306_WHITE);
 
   display.setCursor(5, 25);
-  display.setTextSize(1);
-
   switch (selectedIndex) {
     case 1: { // Altitudine
       display.println("QUOTA PARTENZA:");
@@ -141,7 +130,7 @@ void display_edit(int selectedIndex, int subIndex) {
       char buf[10];
       sprintf(buf, "%04d", (int)config.starting_altitude);
       for(int i=0; i<4; i++) {
-        if(i == subIndex) { // Evidenzia la cifra attiva
+        if(i == subIndex) {
           display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
           display.print(buf[i]);
           display.setTextColor(SSD1306_WHITE);
@@ -152,31 +141,27 @@ void display_edit(int selectedIndex, int subIndex) {
       display.print("m");
       break;
     }
-    case 2: // Sensibilità
+    case 2:
       display.println("SOGLIA (m/s):");
-      display.setTextSize(2);
-      display.setCursor(5, 45);
+      display.setTextSize(2); display.setCursor(5, 45);
       display.print(config.lift_threshold, 1);
       break;
-    case 3: // Filtro
+    case 3:
       display.println("ALGORITMO:");
-      display.setTextSize(1);
-      display.setCursor(5, 45);
+      display.setTextSize(1); display.setCursor(5, 45);
       if(config.filter_type == MEDIA_MOBILE) display.print("> MEDIA MOB.");
       else if(config.filter_type == EMA) display.print("> EMA");
       else display.print("> KALMAN");
       break;
-    case 4: // Batteria
-      display.println("IMPOSTAZ. BATT:");
-      display.setCursor(5, 45);
-      display.print("MOSTRA: "); display.println(config.show_battery_info ? "SI" : "NO");
-      display.setCursor(5, 60);
-      display.print("TIPO: "); display.println(config.show_voltage ? "VOLT" : "%");
+    case 4:
+      display.println("BATT. INFO:");
+      display.setTextSize(1); display.setCursor(5, 45);
+      if (subIndex == 0) display.print("VISIB: "), display.println(config.show_battery_info ? "[SI]" : "NO");
+      else display.print("TIPO: "), display.println(config.show_voltage ? "[VOLT]" : "%");
       break;
-    case 5: // Sniffer
+    case 5:
       display.println("THERMAL SNIFFER:");
-      display.setTextSize(2);
-      display.setCursor(5, 45);
+      display.setTextSize(2); display.setCursor(5, 45);
       display.print(config.thermal_sniffer ? "ATTIVO" : "OFF");
       break;
   }
