@@ -9,7 +9,7 @@
 #define OLED_I2C_ADDRESS 0x3C 
 
 // --- Definizioni Pinout ---
-#define PIN_UP 2
+#define PIN_UP 5
 #define PIN_DOWN 3
 #define PIN_SELECT 4
 #define I2C_SDA_PIN 8
