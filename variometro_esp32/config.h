@@ -44,6 +44,7 @@ struct DeviceConfig {
   float starting_altitude = 0.0;
   FilterType filter_type = MEDIA_MOBILE;
   bool show_battery_info = true;
+  float altitude_offset = 0.0;
   bool show_voltage = false; // true = Volt, false = %
   bool thermal_sniffer = false;
 };

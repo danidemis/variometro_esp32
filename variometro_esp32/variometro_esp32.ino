@@ -44,7 +44,12 @@ void handleInputs() {
       // Gestione specifica per l'altitudine (4 cifre)
       if (selectedMenuItem == 1) { 
         editSubIndex++;
-        if (editSubIndex > 3) currentMode = MODE_MENU; // Fine modifica cifre
+        if (editSubIndex > 3) {
+          // CALIBRAZIONE OFFSET: 
+          // Calcoliamo la differenza tra la quota impostata e quella grezza del sensore
+          config.altitude_offset = config.starting_altitude - (current_data.altitude - config.altitude_offset);
+          currentMode = MODE_MENU;
+        }
       } else {
         currentMode = MODE_MENU; // Per gli altri parametri esce subito
       }
