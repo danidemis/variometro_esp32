@@ -70,6 +70,9 @@ void audio_update(float vario_mps) {
     long beep_interval = map(vario_mps * 100, config.lift_threshold * 100, 500, 600, 80);
     beep_interval = constrain(beep_interval, 80, 600);
     int frequency = map(vario_mps * 100, config.lift_threshold * 100, 500, 800, 1600);
+
+    // A così (per un suono più forte e vicino alla risonanza):
+    //int frequency = map(vario_mps * 100, config.lift_threshold * 100, 500, 2000, 3800);
     
     if (!is_beeping && (current_time - last_event_time > beep_interval)) {
       audio_play(frequency);
