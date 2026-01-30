@@ -81,7 +81,8 @@ void nmea_send(const SensorData &data) {
   int altitude_m = data.filtered_altitude; // Altitudine in metri (intero)
   int vario_cmps = data.vario_mps * 100;     // Vario in cm/s (intero)
   float temp_c = data.temperature;         // Temperatura in Celsius (float)
-  int battery_level = 100;                   // Valore fisso per la batteria (100%)
+//  int battery_level = 100;                   // Valore fisso per la batteria (100%)
+  int battery_level = data.battery_percent;
 
   // 2. Creiamo il "payload" con il nuovo formato LK8EX1
   // $LK8EX1,pressure,altitude,vario,temperature,battery,*checksum
