@@ -7,7 +7,7 @@
 DeviceConfig config;
 DeviceMode currentMode = MODE_FLIGHT;
 int selectedMenuItem = 0;
-int editSubIndex = 0; // Per gestire le 4 cifre dell'altitudine o sottomenu
+int editSubIndex = 0; 
 const int TOTAL_MENU_ITEMS = 6;
 
 bool first_reading_done = false;
@@ -18,73 +18,23 @@ static float pressure_accumulator = 0;
 static int reading_count = 0;
 SensorData current_data;
 
-// Variabili per la logica "On-Release"
+// Variabili per monitorare il rilascio dei tasti
 bool lastUpState = HIGH;
 bool lastDownState = HIGH;
 bool lastSelectState = HIGH;
 
-void handleInputs() {
-  // Leggi gli stati attuali
-  bool currUp = digitalRead(PIN_UP);
-  bool currDown = digitalRead(PIN_DOWN);
-  bool currSelect = digitalRead(PIN_SELECT);
-
-  // --- LOGICA CLICK (Rileva il rilascio: era LOW, ora è HIGH) ---
-  if (lastSelectState == LOW && currSelect == HIGH) {
-    if (currentMode == MODE_FLIGHT) {
-      currentMode = MODE_MENU;
-      selectedMenuItem = 0;
-    } else if (currentMode == MODE_MENU) {
-      if (selectedMenuItem == 0) currentMode = MODE_FLIGHT; // ESCI
-      else {
-        currentMode = MODE_EDIT;
-        editSubIndex = 0; // Inizia dalla prima cifra o opzione
-      }
-    } else if (currentMode == MODE_EDIT) {
-      // Gestione specifica per l'altitudine (4 cifre)
-      if (selectedMenuItem == 1) { 
-        editSubIndex++;
-        if (editSubIndex > 3) {
-          // CALIBRAZIONE OFFSET: 
-          // Calcoliamo la differenza tra la quota impostata e quella grezza del sensore
-          config.altitude_offset = config.starting_altitude - (current_data.altitude - config.altitude_offset);
-          currentMode = MODE_MENU;
-        }
-      } else {
-        currentMode = MODE_MENU; // Per gli altri parametri esce subito
-      }
-    }
-  }
-
-  // --- LOGICA SU/GIÙ (Sempre al rilascio per precisione) ---
-  if (lastUpState == LOW && currUp == HIGH) {
-    if (currentMode == MODE_MENU) {
-      selectedMenuItem = (selectedMenuItem - 1 + TOTAL_MENU_ITEMS) % TOTAL_MENU_ITEMS;
-    } else if (currentMode == MODE_EDIT) {
-      updateParameter(true);
-    }
-  }
-
-  if (lastDownState == LOW && currDown == HIGH) {
-    if (currentMode == MODE_MENU) {
-      selectedMenuItem = (selectedMenuItem + 1) % TOTAL_MENU_ITEMS;
-    } else if (currentMode == MODE_EDIT) {
-      updateParameter(false);
-    }
-  }
-
-  // Salva gli stati per il prossimo ciclo
-  lastUpState = currUp;
-  lastDownState = currDown;
-  lastSelectState = currSelect;
+// Calcola l'offset per fare in modo che la quota letta diventi quella impostata
+void calibrate_altitude() {
+    // Offset = Quota Desiderata - Quota Grezza Sensore
+    // Sottraiamo l'offset vecchio per avere la quota pura del sensore
+    float raw_sensor_altitude = current_data.altitude - config.altitude_offset;
+    config.altitude_offset = config.starting_altitude - raw_sensor_altitude;
 }
 
-// Funzione helper per modificare i valori nella struttura config
 void updateParameter(bool increment) {
   float delta = increment ? 0.1 : -0.1;
-  
   switch (selectedMenuItem) {
-    case 1: { // ALTIMETRIA (Modifica 4 cifre)
+    case 1: { // ALTIMETRIA
       int factors[] = {1000, 100, 10, 1};
       int val = (int)config.starting_altitude;
       int digit = (val / factors[editSubIndex]) % 10;
@@ -92,21 +42,61 @@ void updateParameter(bool increment) {
       config.starting_altitude += (newDigit - digit) * factors[editSubIndex];
       break;
     }
-    case 2: // SENSIBILITÀ
+    case 2: 
       config.lift_threshold = constrain(config.lift_threshold + delta, 0.1, 2.0);
-      config.sink_threshold = -config.lift_threshold; // Manteniamo simmetria
+      config.sink_threshold = -config.lift_threshold - 0.2; // Soglia sink leggermente più bassa
       break;
-    case 3: // FILTRO
+    case 3: 
       config.filter_type = (FilterType)((config.filter_type + (increment ? 1 : 2)) % 3);
       break;
-    case 4: // BATTERIA (Toggle info / Toggle Volt-%)
+    case 4: 
       if (editSubIndex == 0) config.show_battery_info = !config.show_battery_info;
       else config.show_voltage = !config.show_voltage;
       break;
-    case 5: // SNIFFER
+    case 5: 
       config.thermal_sniffer = !config.thermal_sniffer;
       break;
   }
+}
+
+void handleInputs() {
+  bool currUp = digitalRead(PIN_UP);
+  bool currDown = digitalRead(PIN_DOWN);
+  bool currSelect = digitalRead(PIN_SELECT);
+
+  // CLICK SELECT (Al rilascio)
+  if (lastSelectState == LOW && currSelect == HIGH) {
+    if (currentMode == MODE_FLIGHT) {
+      currentMode = MODE_MENU;
+    } else if (currentMode == MODE_MENU) {
+      if (selectedMenuItem == 0) currentMode = MODE_FLIGHT;
+      else { currentMode = MODE_EDIT; editSubIndex = 0; }
+    } else if (currentMode == MODE_EDIT) {
+      if (selectedMenuItem == 1) { // Ciclo cifre altitudine
+        editSubIndex++;
+        if (editSubIndex > 3) { calibrate_altitude(); currentMode = MODE_MENU; }
+      } else if (selectedMenuItem == 4) { // Ciclo opzioni batteria
+        editSubIndex++;
+        if (editSubIndex > 1) currentMode = MODE_MENU;
+      } else { currentMode = MODE_MENU; }
+    }
+  }
+
+  // UP (Al rilascio)
+  if (lastUpState == LOW && currUp == HIGH) {
+    if (currentMode == MODE_MENU) selectedMenuItem = (selectedMenuItem - 1 + TOTAL_MENU_ITEMS) % TOTAL_MENU_ITEMS;
+    else if (currentMode == MODE_EDIT) updateParameter(true);
+  }
+
+  // DOWN (Al rilascio)
+  if (lastDownState == LOW && currDown == HIGH) {
+    if (currentMode == MODE_MENU) selectedMenuItem = (selectedMenuItem + 1) % TOTAL_MENU_ITEMS;
+    else if (currentMode == MODE_EDIT) updateParameter(false);
+  }
+
+  lastUpState = currUp;
+  lastDownState = currDown;
+  lastSelectState = currSelect;
 }
 
 void setup() {
@@ -138,8 +128,11 @@ void loop() {
       
       if (!first_reading_done) {
         config.starting_altitude = current_data.filtered_altitude;
+        calibrate_altitude(); // Calibra il sensore all'avvio
         first_reading_done = true;
       }
+      
+      // Il guadagno ora sarà coerente con la quota impostata
       current_gain = current_data.filtered_altitude - config.starting_altitude;
 
       audio_update(current_data.vario_mps);
