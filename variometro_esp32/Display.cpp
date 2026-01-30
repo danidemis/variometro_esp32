@@ -9,22 +9,42 @@ unsigned long volume_display_timer = 0;
 
 // Funzione helper da aggiungere per disegnare la barra
 void draw_volume_popup() {
-  // Disegna un rettangolo di sfondo al centro
-  display.fillRect(10, 40, 44, 48, SSD1306_BLACK);
-  display.drawRect(10, 40, 44, 48, SSD1306_WHITE);
+  // Dimensioni del box (schermo largo 64px)
+  int boxX = 2;    
+  int boxY = 15;   // Alzato leggermente per dare più spazio interno
+  int boxW = 60;   
+  int boxH = 95;   // Aumentata l'altezza totale
+
+  // Pulisce l'area e disegna il bordo
+  display.fillRect(boxX, boxY, boxW, boxH, SSD1306_BLACK);
+  display.drawRect(boxX, boxY, boxW, boxH, SSD1306_WHITE);
   
-  display.setTextSize(1);
+  // Scritta "VOL" centrata e posizionata in alto
+  display.setTextSize(2); 
   display.setTextColor(SSD1306_WHITE);
-  display.setCursor(15, 45);
+  display.setCursor(14, boxY + 5); // Posizionata a 5 pixel dal bordo superiore del box
   display.print("VOL");
 
-  // Disegna 8 segmenti per il volume
+  // Configurazione barre
+  int barW = 52; 
+  int barH = 6;  
+  int gap = 2;   
+  int startX = 6; 
+
+  // Calcolo dinamico del punto di partenza dal basso per evitare la scritta
+  // Posizioniamo l'ultima barra (la più alta) a debita distanza dal testo
+  // Se "VOL" finisce circa a Y=36 (15+5+16), iniziamo la pila di barre più in basso
+  int topBarY = boxY + 28; // Lascia circa 28 pixel per la scritta e lo spazio vuoto
+  int bottomY = topBarY + (7 * (barH + gap)); 
+
+  // Disegna le 8 tacche dal basso verso l'alto
   for (int i = 0; i < 8; i++) {
-    int y = 78 - (i * 4);
+    int y = bottomY - (i * (barH + gap));
+    
     if (i < config.volume) {
-      display.fillRect(15, y, 34, 3, SSD1306_WHITE);
+      display.fillRect(startX, y, barW, barH, SSD1306_WHITE);
     } else {
-      display.drawRect(15, y, 34, 3, SSD1306_WHITE);
+      display.drawRect(startX, y, barW, barH, SSD1306_WHITE);
     }
   }
 }
