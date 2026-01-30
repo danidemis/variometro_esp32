@@ -28,7 +28,8 @@ enum DeviceMode {
   MODE_FLIGHT,  // Visualizzazione dati di volo
   MODE_MENU,    // Navigazione lista impostazioni
   MODE_EDIT,     // Modifica di un valore specifico
-  MODE_HISTORY 
+  MODE_HISTORY,
+  MODE_CONFIRM_START
 };
 
 // --- Tipi di Filtro ---
@@ -60,6 +61,7 @@ struct FlightRecord {
   float min_alt = 0;
   float max_climb = 0;
   float max_sink = 0;
+  uint32_t duration_secs = 0;
   FilterType used_filter = KALMAN; // <-- Algoritmo memorizzato
   bool valid = false;              // Indica se il record contiene un volo reale
 };

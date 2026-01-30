@@ -13,4 +13,6 @@ void storage_save_flight(const FlightRecord &newFlight);
 // Resetta tutta la memoria (opzionale)
 void storage_clear_all();
 
+void storage_get_flight(int index, FlightRecord &record);
+
 #endif
