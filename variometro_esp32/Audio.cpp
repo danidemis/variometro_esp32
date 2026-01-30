@@ -15,7 +15,6 @@ static unsigned long last_event_time = 0;
 static bool is_beeping = false;           
 
 void audio_init() {
-  // Inizializza il PWM sul pin del buzzer
   ledcAttach(BUZZER_PIN, 4000, LEDC_RESOLUTION);
 }
 
@@ -24,19 +23,21 @@ void audio_play(int frequency) {
     ledcWrite(BUZZER_PIN, 0);
     return;
   }
-  
-  // Imposta la frequenza desiderata
   ledcWriteTone(BUZZER_PIN, frequency);
   
-  // Calcola il duty cycle basato sul volume (0-100%).
-  // Il volume massimo percepito in un piezo con onda quadra è al 50% di duty cycle.
-  // Mappiamo il volume 0-100 dell'utente in un duty cycle 0-127 (50% di 255).
-  int duty = map(config.volume, 0, 100, 0, 127);
+  // Mappiamo i livelli 1-8 in un duty cycle da 10 a 127 (50%)
+  int duty = map(config.volume, 1, 8, 10, 127);
   ledcWrite(BUZZER_PIN, duty);
 }
 
 void audio_stop() {
   ledcWrite(BUZZER_PIN, 0);
+}
+
+void audio_beep_feedback() {
+  audio_play(1200); // Tono secco
+  delay(30);        // Durata minima
+  audio_stop();
 }
 
 void audio_update(float vario_mps) {

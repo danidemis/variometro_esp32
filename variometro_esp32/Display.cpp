@@ -5,6 +5,34 @@
 #include <Adafruit_SSD1306.h>
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+unsigned long volume_display_timer = 0;
+
+// Funzione helper da aggiungere per disegnare la barra
+void draw_volume_popup() {
+  // Disegna un rettangolo di sfondo al centro
+  display.fillRect(10, 40, 44, 48, SSD1306_BLACK);
+  display.drawRect(10, 40, 44, 48, SSD1306_WHITE);
+  
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(15, 45);
+  display.print("VOL");
+
+  // Disegna 8 segmenti per il volume
+  for (int i = 0; i < 8; i++) {
+    int y = 78 - (i * 4);
+    if (i < config.volume) {
+      display.fillRect(15, y, 34, 3, SSD1306_WHITE);
+    } else {
+      display.drawRect(15, y, 34, 3, SSD1306_WHITE);
+    }
+  }
+}
+
+// Funzione per attivare la visualizzazione del volume (da chiamare nel .ino)
+void display_show_volume() {
+  volume_display_timer = millis() + 2000; // Mostra per 2 secondi
+}
 
 void display_init() {
   if(!display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDRESS)) {
@@ -81,6 +109,11 @@ void display_update(const SensorData &data, float start_altitude, float relative
   else if (data.vario_mps < 0) {
     int bar_height = constrain(map(data.vario_mps * 100, 0, -500, 0, 35), 0, 35);
     if (bar_height > 0) display.fillRect(bar_x, center_y, bar_width, bar_height, SSD1306_WHITE);
+  }
+
+  // SEZIONE POP-UP VOLUME:
+  if (millis() < volume_display_timer) {
+    draw_volume_popup();
   }
 
   display.display();

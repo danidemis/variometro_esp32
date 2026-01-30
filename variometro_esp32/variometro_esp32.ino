@@ -85,9 +85,11 @@ void handleInputs() {
   // UP (Al rilascio)
   if (lastUpState == LOW && currUp == HIGH) {
     if (currentMode == MODE_FLIGHT) {
-      // REGOLA VOLUME SU NELLA SCHERMATA PRINCIPALE
-      config.volume = constrain(config.volume + 10, 0, 100);
-      Serial.print("Volume: "); Serial.println(config.volume);
+      if (config.volume < 8) {
+        config.volume++;
+        audio_beep_feedback(); // Feedback acustico
+        display_show_volume(); // Feedback visivo
+      }
     } 
     else if (currentMode == MODE_MENU) {
       selectedMenuItem = (selectedMenuItem - 1 + TOTAL_MENU_ITEMS) % TOTAL_MENU_ITEMS;
@@ -100,9 +102,11 @@ void handleInputs() {
   // DOWN (Al rilascio)
   if (lastDownState == LOW && currDown == HIGH) {
     if (currentMode == MODE_FLIGHT) {
-      // REGOLA VOLUME GIÙ NELLA SCHERMATA PRINCIPALE
-      config.volume = constrain(config.volume - 10, 0, 100);
-      Serial.print("Volume: "); Serial.println(config.volume);
+      if (config.volume > 1) {
+        config.volume--;
+        audio_beep_feedback(); // Feedback acustico
+        display_show_volume(); // Feedback visivo
+      }
     } 
     else if (currentMode == MODE_MENU) {
       selectedMenuItem = (selectedMenuItem + 1) % TOTAL_MENU_ITEMS;
